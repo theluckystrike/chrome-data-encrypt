@@ -1,0 +1,37 @@
+{
+    "name": "chrome-data-encrypt",
+    "version": "0.1.0",
+    "description": "Client-side AES-256 encryption for Chrome extensions — Web Crypto API, key derivation, encrypted storage wrapper, and secure deletion for MV3.",
+    "author": "Zovo <hello@zovo.one>",
+    "license": "MIT",
+    "keywords": [
+        "chrome-extension",
+        "encryption",
+        "aes",
+        "crypto",
+        "security",
+        "storage",
+        "manifest-v3",
+        "browser-extension",
+        "privacy"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/theluckystrike/chrome-data-encrypt.git"
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "prepublishOnly": "npm run build"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.260",
+        "typescript": "^5.3.3"
+    }
+}
