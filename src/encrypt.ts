@@ -9,7 +9,7 @@ export class DataEncrypt {
         const enc = new TextEncoder();
         const s = salt || crypto.getRandomValues(new Uint8Array(16));
         const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-        this.key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: s, iterations: 100000, hash: 'SHA-256' }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        this.key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: s as unknown as ArrayBuffer, iterations: 100000, hash: 'SHA-256' }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
         return s;
     }
 
@@ -23,7 +23,7 @@ export class DataEncrypt {
         if (!this.key) throw new Error('Key not initialized. Call deriveKey() or generateKey() first.');
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const enc = new TextEncoder();
-        const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, this.key, enc.encode(plaintext));
+        const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as unknown as ArrayBuffer }, this.key, enc.encode(plaintext) as unknown as ArrayBuffer);
         const combined = new Uint8Array(iv.length + encrypted.byteLength);
         combined.set(iv); combined.set(new Uint8Array(encrypted), iv.length);
         return btoa(String.fromCharCode(...combined));
@@ -35,7 +35,7 @@ export class DataEncrypt {
         const data = Uint8Array.from(atob(ciphertext), (c) => c.charCodeAt(0));
         const iv = data.slice(0, 12);
         const encrypted = data.slice(12);
-        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, this.key, encrypted);
+        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as unknown as ArrayBuffer }, this.key, encrypted as unknown as ArrayBuffer);
         return new TextDecoder().decode(decrypted);
     }
 
