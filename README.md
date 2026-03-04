@@ -1,8 +1,12 @@
 # chrome-data-encrypt
 
-> Client-side AES-256 encryption for Chrome extensions — Web Crypto API, key derivation, encrypted storage wrapper, and secure deletion for MV3.
-
+[![npm version](https://img.shields.io/npm/v/chrome-data-encrypt)](https://npmjs.com/package/chrome-data-encrypt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Discord](https://img.shields.io/badge/Discord-Zovo-blueviolet.svg?logo=discord)](https://discord.gg/zovo)
+[![Website](https://img.shields.io/badge/Website-zovo.one-blue)](https://zovo.one)
+
+> Client-side AES-256 encryption for Chrome extensions — Web Crypto API, key derivation, encrypted storage wrapper, and secure deletion for MV3.
 
 ## Install
 
@@ -78,3 +82,18 @@ Overwrites the storage key with 64 bytes of random data before removing it, redu
 ## License
 
 MIT
+
+## See Also
+
+### Related Zovo Repositories
+
+- [chrome-identity-helper](https://github.com/theluckystrike/chrome-identity-helper) - OAuth2 authentication
+- [webext-privacy-guard](https://github.com/theluckystrike/webext-privacy-guard) - Privacy utilities
+- [chrome-extension-starter-mv3](https://github.com/theluckystrike/chrome-extension-starter-mv3) - Production-ready Chrome extension starter
+
+### Zovo Chrome Extensions
+
+- [Zovo Tab Manager](https://chrome.google.com/webstore/detail/zovo-tab-manager) - Manage tabs efficiently
+- [Zovo Focus](https://chrome.google.com/webstore/detail/zovo-focus) - Block distractions
+
+Visit [zovo.one](https://zovo.one) for more information.
