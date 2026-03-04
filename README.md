@@ -1,102 +1,80 @@
-# chrome-data-encrypt — AES-256 Encryption for Extensions
+# chrome-data-encrypt
 
-[![npm version](https://img.shields.io/npm/v/chrome-data-encrypt)](https://npmjs.com/package/chrome-data-encrypt)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Chrome Web Extension](https://img.shields.io/badge/Chrome-Web%20Extension-orange.svg)](https://developer.chrome.com/docs/extensions/)
-[![Discord](https://img.shields.io/badge/Discord-Zovo-blueviolet.svg?logo=discord)](https://discord.gg/zovo)
-[![Website](https://img.shields.io/badge/Website-zovo.one-blue)](https://zovo.one)
+> Client-side AES-256 encryption for Chrome extensions — Web Crypto API, key derivation, encrypted storage wrapper, and secure deletion for MV3.
 
-> **Built by [Zovo](https://zovo.one)** | `npm i chrome-data-encrypt`
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-AES-256-GCM encryption for Chrome extensions via Web Crypto API, with PBKDF2 key derivation, encrypted storage wrapper, and secure deletion.
-
-Part of the [Zovo](https://zovo.one) family of Chrome extension utilities.
-
-## Features
-
-- **AES-256-GCM**: Military-grade encryption
-- **PBKDF2 Key Derivation**: Secure password-based keys
-- **Encrypted Storage**: Store encrypted data in chrome.storage
-- **Secure Deletion**: Wipe sensitive data securely
-- **Zero Dependencies**: Uses native Web Crypto API
-
-## Installation
+## Install
 
 ```bash
 npm install chrome-data-encrypt
 ```
 
-## Quick Start
+## Usage
 
-```typescript
+```js
 import { DataEncrypt } from 'chrome-data-encrypt';
 
-const enc = new DataEncrypt();
+const vault = new DataEncrypt();
 
-// Derive key from password
-const salt = await enc.deriveKey('user-password');
+// Derive a key from a password (PBKDF2 with 100k iterations)
+const salt = await vault.deriveKey('my-secret-password');
 
-// Encrypt and store data
-await enc.encryptAndStore('secrets', { apiKey: 'sk_live_...' });
+// Or generate a random AES-256 key
+await vault.generateKey();
 
-// Decrypt stored data
-const data = await enc.decryptFromStorage('secrets');
+// Encrypt and decrypt strings
+const ciphertext = await vault.encrypt('sensitive data');
+const plaintext = await vault.decrypt(ciphertext);
+// => 'sensitive data'
+
+// Encrypt an object and store it directly in chrome.storage.local
+await vault.encryptAndStore('userProfile', { name: 'Jane', email: 'jane@test.com' });
+
+// Decrypt from chrome.storage.local
+const profile = await vault.decryptFromStorage('userProfile');
+// => { name: 'Jane', email: 'jane@test.com' }
+
+// Securely delete a storage key (overwrite then remove)
+await vault.secureDelete('userProfile');
 ```
 
-## API Reference
+## API
 
-### Methods
+### `DataEncrypt`
 
-```typescript
-// Derive encryption key from password
-deriveKey(password: string, iterations?: number): Promise<CryptoKey>;
+#### `new DataEncrypt()`
 
-// Encrypt data
-encrypt(data: object | string, key?: CryptoKey): Promise<EncryptedData>;
+Creates a new encryption instance. A key must be initialized via `deriveKey()` or `generateKey()` before calling `encrypt` or `decrypt`.
 
-// Decrypt data
-decrypt(encrypted: EncryptedData, key?: CryptoKey): Promise<any>;
+#### `vault.deriveKey(password: string, salt?: Uint8Array): Promise<Uint8Array>`
 
-// Encrypt and store in chrome.storage
-encryptAndStore(key: string, data: object | string): Promise<void>;
+Derives an AES-256-GCM key from the given password using PBKDF2 with SHA-256 and 100,000 iterations. If no `salt` is provided, a random 16-byte salt is generated. Returns the salt (save it to re-derive the same key later).
 
-// Decrypt from chrome.storage
-decryptFromStorage(key: string): Promise<any>;
+#### `vault.generateKey(): Promise<void>`
 
-// Generate random encryption key
-generateKey(): Promise<CryptoKey>;
+Generates a random AES-256-GCM key using the Web Crypto API.
 
-// Secure deletion
-secureDelete(key: string): Promise<void>;
-```
+#### `vault.encrypt(plaintext: string): Promise<string>`
 
-## Contributing
+Encrypts the plaintext string using AES-256-GCM with a random 12-byte IV. Returns a base64-encoded string containing the IV prepended to the ciphertext. Throws if no key has been initialized.
 
-Contributions are welcome! Please follow these steps:
+#### `vault.decrypt(ciphertext: string): Promise<string>`
 
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/encryption-improvement`
-3. **Make** your changes
-4. **Test** your changes
-5. **Commit** your changes: `git commit -m 'Add new feature'`
-6. **Push** to the branch: `git push origin feature/encryption-improvement`
-7. **Submit** a Pull Request
+Decrypts a base64-encoded ciphertext string produced by `encrypt()`. Extracts the IV from the first 12 bytes and decrypts the remainder. Throws if no key has been initialized.
 
-## See Also
+#### `vault.encryptAndStore(storageKey: string, data: any): Promise<void>`
 
-### Related Zovo Repositories
+Serializes `data` to JSON, encrypts it, and stores the ciphertext in `chrome.storage.local` under the given `storageKey`.
 
-- [chrome-extension-starter-mv3](https://github.com/theluckystrike/chrome-extension-starter-mv3) - Production-ready MV3 starter template
-- [chrome-storage-plus](https://github.com/theluckystrike/chrome-storage-plus) - Type-safe storage wrapper
-- [zovo-types-webext](https://github.com/theluckystrike/zovo-types-webext) - TypeScript type definitions
+#### `vault.decryptFromStorage<T>(storageKey: string): Promise<T | null>`
 
-### Zovo Chrome Extensions
+Reads the ciphertext from `chrome.storage.local` at the given `storageKey`, decrypts it, and parses the JSON result. Returns `null` if the key does not exist in storage.
 
-- [Zovo Tab Manager](https://chrome.google.com/webstore/detail/zovo-tab-manager) - Manage tabs efficiently
+#### `vault.secureDelete(storageKey: string): Promise<void>`
 
-Visit [zovo.one](https://zovo.one) for more information.
+Overwrites the storage key with 64 bytes of random data before removing it, reducing the chance of data recovery.
 
 ## License
 
-MIT — [Zovo](https://zovo.one)
+MIT
