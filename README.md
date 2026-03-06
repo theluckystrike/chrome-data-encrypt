@@ -1,114 +1,92 @@
 # chrome-data-encrypt
 
-[![npm version](https://img.shields.io/npm/v/chrome-data-encrypt)](https://npmjs.com/package/chrome-data-encrypt)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Discord](https://img.shields.io/badge/Discord-Zovo-blueviolet.svg?logo=discord)](https://discord.gg/zovo)
-[![Website](https://img.shields.io/badge/Website-zovo.one-blue)](https://zovo.one)
-[![GitHub Stars](https://img.shields.io/github/stars/theluckystrike/chrome-data-encrypt?style=social)](https://github.com/theluckystrike/chrome-data-encrypt)
+Client-side AES-256-GCM encryption for Chrome extensions. Uses the Web Crypto API for key derivation, encrypted storage, and secure deletion. Built for Manifest V3.
 
-> Client-side AES-256 encryption for Chrome extensions — Web Crypto API, key derivation, encrypted storage wrapper, and secure deletion for MV3.
+INSTALL
 
-Part of the [Zovo](https://zovo.one) developer tools family.
-
-## Install
-
-```bash
+```
 npm install chrome-data-encrypt
 ```
 
-## Usage
+QUICK START
 
 ```js
 import { DataEncrypt } from 'chrome-data-encrypt';
 
 const vault = new DataEncrypt();
 
-// Derive a key from a password (PBKDF2 with 100k iterations)
+// derive a key from a passphrase (PBKDF2, 100k iterations, SHA-256)
 const salt = await vault.deriveKey('my-secret-password');
 
-// Or generate a random AES-256 key
+// or generate a random AES-256-GCM key
 await vault.generateKey();
 
-// Encrypt and decrypt strings
+// encrypt and decrypt a string
 const ciphertext = await vault.encrypt('sensitive data');
 const plaintext = await vault.decrypt(ciphertext);
-// => 'sensitive data'
 
-// Encrypt an object and store it directly in chrome.storage.local
-await vault.encryptAndStore('userProfile', { name: 'Jane', email: 'jane@test.com' });
+// store encrypted data in chrome.storage.local
+await vault.encryptAndStore('profile', { name: 'Jane', email: 'jane@example.com' });
 
-// Decrypt from chrome.storage.local
-const profile = await vault.decryptFromStorage('userProfile');
-// => { name: 'Jane', email: 'jane@test.com' }
+// retrieve and decrypt from storage
+const profile = await vault.decryptFromStorage('profile');
 
-// Securely delete a storage key (overwrite then remove)
-await vault.secureDelete('userProfile');
+// securely wipe a storage key (overwrite with random bytes, then remove)
+await vault.secureDelete('profile');
 ```
 
-## API
+API
 
-### `DataEncrypt`
+DataEncrypt is the single export. Create an instance, initialize a key, then encrypt or decrypt.
 
-#### `new DataEncrypt()`
+new DataEncrypt()
 
-Creates a new encryption instance. A key must be initialized via `deriveKey()` or `generateKey()` before calling `encrypt` or `decrypt`.
+Creates an encryption instance. No key is set yet. You must call deriveKey or generateKey before any encrypt/decrypt operation.
 
-#### `vault.deriveKey(password: string, salt?: Uint8Array): Promise<Uint8Array>`
+vault.deriveKey(password, salt?)
 
-Derives an AES-256-GCM key from the given password using PBKDF2 with SHA-256 and 100,000 iterations. If no `salt` is provided, a random 16-byte salt is generated. Returns the salt (save it to re-derive the same key later).
+Derives an AES-256-GCM key from a password string using PBKDF2 with SHA-256 and 100,000 iterations. If salt is omitted, a random 16-byte salt is generated. Returns a Promise<Uint8Array> containing the salt. Store the salt so you can re-derive the same key later.
 
-#### `vault.generateKey(): Promise<void>`
+vault.generateKey()
 
-Generates a random AES-256-GCM key using the Web Crypto API.
+Generates a random AES-256-GCM key via crypto.subtle.generateKey. Returns Promise<void>.
 
-#### `vault.encrypt(plaintext: string): Promise<string>`
+vault.encrypt(plaintext)
 
-Encrypts the plaintext string using AES-256-GCM with a random 12-byte IV. Returns a base64-encoded string containing the IV prepended to the ciphertext. Throws if no key has been initialized.
+Encrypts a string with AES-256-GCM using a random 12-byte IV. The IV is prepended to the ciphertext and the whole thing is base64-encoded. Returns Promise<string>. Throws if no key is initialized.
 
-#### `vault.decrypt(ciphertext: string): Promise<string>`
+vault.decrypt(ciphertext)
 
-Decrypts a base64-encoded ciphertext string produced by `encrypt()`. Extracts the IV from the first 12 bytes and decrypts the remainder. Throws if no key has been initialized.
+Decrypts a base64 string produced by encrypt. Splits the IV from the first 12 bytes and decrypts the rest. Returns Promise<string>. Throws if no key is initialized.
 
-#### `vault.encryptAndStore(storageKey: string, data: any): Promise<void>`
+vault.encryptAndStore(storageKey, data)
 
-Serializes `data` to JSON, encrypts it, and stores the ciphertext in `chrome.storage.local` under the given `storageKey`.
+Serializes data to JSON, encrypts it, and writes the ciphertext to chrome.storage.local under storageKey. Returns Promise<void>.
 
-#### `vault.decryptFromStorage<T>(storageKey: string): Promise<T | null>`
+vault.decryptFromStorage<T>(storageKey)
 
-Reads the ciphertext from `chrome.storage.local` at the given `storageKey`, decrypts it, and parses the JSON result. Returns `null` if the key does not exist in storage.
+Reads ciphertext from chrome.storage.local at storageKey, decrypts it, and parses the JSON result. Returns Promise<T | null>. Returns null when the key does not exist in storage.
 
-#### `vault.secureDelete(storageKey: string): Promise<void>`
+vault.secureDelete(storageKey)
 
-Overwrites the storage key with 64 bytes of random data before removing it, reducing the chance of data recovery.
+Overwrites the storage key with 64 bytes of random data, then removes it. This reduces the chance of data recovery from storage. Returns Promise<void>.
 
-## License
+HOW IT WORKS
 
-MIT
+All cryptographic operations run through the Web Crypto API (crypto.subtle), which is available in Chrome extension service workers and content scripts. No external dependencies are needed.
 
-## Contributing
+Key derivation uses PBKDF2 with 100,000 iterations and SHA-256. Encryption uses AES-256-GCM with a fresh 12-byte IV per call. The IV is stored alongside the ciphertext so decryption is self-contained.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Storage operations wrap chrome.storage.local. The secure delete path writes random noise over the key before removing it, making casual forensic recovery harder.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+LICENSE
+
+MIT. See LICENSE file.
+
+CONTRIBUTING
+
+Fork the repo, make a branch, open a pull request. Keep changes focused and tests passing.
 
 ---
 
-Built by [Zovo](https://zovo.one)
-
-### Related Zovo Repositories
-
-- [chrome-identity-helper](https://github.com/theluckystrike/chrome-identity-helper) - OAuth2 authentication
-- [webext-privacy-guard](https://github.com/theluckystrike/webext-privacy-guard) - Privacy utilities
-- [chrome-extension-starter-mv3](https://github.com/theluckystrike/chrome-extension-starter-mv3) - Production-ready Chrome extension starter
-
-### Zovo Chrome Extensions
-
-- [Zovo Tab Manager](https://chrome.google.com/webstore/detail/zovo-tab-manager) - Manage tabs efficiently
-- [Zovo Focus](https://chrome.google.com/webstore/detail/zovo-focus) - Block distractions
-
-Visit [zovo.one](https://zovo.one) for more information.
+Built at zovo.one
